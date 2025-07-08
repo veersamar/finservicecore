@@ -1,0 +1,6 @@
+@X.FinanceService_HostAddress = http://localhost:5188
+
+GET {{X.FinanceService_HostAddress}}/documents/
+Accept: application/json
+
+###
