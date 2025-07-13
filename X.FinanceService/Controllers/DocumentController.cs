@@ -1,11 +1,8 @@
-﻿using X.Finance.Business.DataObjects;
-using X.Finance.Business.Services;
-
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-
-using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
+using X.Finance.Business.DataObjects;
+using X.Finance.Business.Services;
 
 namespace X.Finance.API.Controllers
 {
@@ -13,31 +10,31 @@ namespace X.Finance.API.Controllers
     [ApiController]
     public class DocumentController : ControllerBase
     {
-        private readonly IAccountDocumentService _service;
+        private readonly IAccountDocumentService _accountDocumentService;
 
-        public DocumentController(IAccountDocumentService service)
+        public DocumentController(IAccountDocumentService accountDocumentService)
         {
-            _service = service;
+            _accountDocumentService = accountDocumentService;
         }
 
         [HttpPost("create")]
-        public async Task<IActionResult> Create([FromBody] AccountDocumentData document)
+        public async Task<IActionResult> Create([FromBody] AccountDocumentData documentData)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var id = await _service.CreateAccountDocumentAsync(document);
+            // Use the service instead of direct repository access
+            var id = await _accountDocumentService.CreateAccountDocumentAsync(documentData);
             return Ok(new { Id = id });
         }
 
         [HttpGet("getDocuments")]
         public async Task<IActionResult> GetAll()
         {
-            AccountDocumentData document = null;// await _service.GetAccountDocumentAsync(id);
+            AccountDocumentData document = null; // TODO: Implement GetAllDocuments in service
             if (document == null)
                 return NotFound();
             return Ok(document);
         }
-
-    }    
+    }
 }

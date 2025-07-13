@@ -9,29 +9,32 @@ using X.Finance.Business.Validations;
 using X.Finance.Component.Entities;
 using X.Finance.Component.Enums;
 using X.Finance.Data.Data;
+using X.Finance.Data.Repositories;
 
 namespace X.Finance.Business.Services
 {
     public class AccountDocumentService : IAccountDocumentService
     {
-        private readonly AccountDbContext _Context;
-        private readonly AccountOutstandingService _OutstandingService;
+        private readonly IAccountDocumentRepository _documentRepository;
+        private readonly AccountOutstandingService _outstandingService;
+        private readonly AccountDocumentValidator _validator;
 
-        private readonly AccountDocumentValidator _Validator;
-
-        public AccountDocumentService(AccountDbContext context, AccountDocumentValidator validator)
+        public AccountDocumentService(
+            IAccountDocumentRepository documentRepository, 
+            AccountOutstandingService outstandingService,
+            AccountDocumentValidator validator)
         {
-            _Context = context;
-            _OutstandingService = new AccountOutstandingService(_Context);
-            _Validator = validator;
+            _documentRepository = documentRepository;
+            _outstandingService = outstandingService;
+            _validator = validator;
         }
 
         public async Task<long> CreateAccountDocumentAsync(AccountDocumentData document)
         {
             // Validate input using instance validator
-            _Validator.ValidateDocument(document.AccountLines);
+            _validator.ValidateDocument(document.AccountLines);
 
-            using var transaction = await _Context.Database.BeginTransactionAsync();
+            using var transaction = await _documentRepository.BeginTransactionAsync();
 
             try
             {
@@ -66,23 +69,21 @@ namespace X.Finance.Business.Services
                 if (total != 0)
                     throw new InvalidOperationException("The document is unbalanced. Debits must equal credits.");
 
-                _Context.AccountDocuments.Add(accountDocument);
-                await _Context.SaveChangesAsync();
-
-                await _OutstandingService.CreateOutstandingAsync(accountDocument, document.AccountLines);
+                var docId = await _documentRepository.CreateAsync(accountDocument);
+                
+                await _outstandingService.CreateOutstandingAsync(accountDocument, document.AccountLines);
 
                 // Commit transaction
                 await transaction.CommitAsync();
 
-                return accountDocument.Id;
+                return docId;
             }
-            catch(Exception ex)
+            catch
             {
                 // Optional explicit rollback (Dispose rolls back if not committed)
                 await transaction.RollbackAsync();
-
                 throw;
-            }            
+            }
         }
     }
 }
