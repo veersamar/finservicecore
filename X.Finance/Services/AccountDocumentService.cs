@@ -17,15 +17,18 @@ namespace X.Finance.Business.Services
     {
         private readonly IAccountDocumentRepository _documentRepository;
         private readonly AccountOutstandingService _outstandingService;
+        private readonly AccountDocumentTaggingService _taggingService;
         private readonly AccountDocumentValidator _validator;
 
         public AccountDocumentService(
             IAccountDocumentRepository documentRepository, 
             AccountOutstandingService outstandingService,
+            AccountDocumentTaggingService taggingService,
             AccountDocumentValidator validator)
         {
             _documentRepository = documentRepository;
             _outstandingService = outstandingService;
+            _taggingService = taggingService;
             _validator = validator;
         }
 
@@ -72,6 +75,16 @@ namespace X.Finance.Business.Services
                 var docId = await _documentRepository.CreateAsync(accountDocument);
                 
                 await _outstandingService.CreateOutstandingAsync(accountDocument, document.AccountLines);
+                //
+                // If tagging data is provided, apply it to the newly created document
+                if (document.TaggingReferences != null)
+                {
+                    // Set the docId to the newly created document ID
+                    document.TaggingReferences.DocId = docId;
+
+                    // Use the existing tagging service (reuse the logic)
+                    await _taggingService.TagAccountAdvanceAsync(document.TaggingReferences);
+                }
 
                 // Commit transaction
                 await transaction.CommitAsync();

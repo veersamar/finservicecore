@@ -32,46 +32,7 @@ namespace X.Finance.Business.Services
 
             try
             {
-                long docId = data.DocId;
-                long refDocId = data.RefDocID;
-                decimal amount = data.Amount;
-
-                var document = await _context.AccountOutstandings
-                    .FirstOrDefaultAsync(o => o.DocId == docId);
-                var refDocument = await _context.AccountOutstandings
-                    .FirstOrDefaultAsync(o => o.DocId == refDocId);
-
-                if (document == null)// || refDocument == null)
-                    throw new InvalidOperationException("Receipt or Invoice not found.");
-
-                // Explicitly cast OpenAmount to decimal if needed (should already be decimal, but for safety)
-                decimal docOpenAmount = Convert.ToDecimal(document.OpenAmount);
-                //decimal refDocOpenAmount = Convert.ToDecimal(refDocument.OpenAmount);
-
-                if (docOpenAmount < amount)
-                    throw new InvalidOperationException("Not enough open amount on Receipt.");
-
-                //if (refDocOpenAmount < amount)
-                //    throw new InvalidOperationException("Invoice already settled for this amount.");
-
-                var application = new AccountAdvance
-                {
-                    DocId = document.DocId,
-                    LineId = document.DocLineId,
-                    ContactId = document.ContactId,
-                    AccountId = document.AccountId,
-                    RefDocId = refDocId,
-                    Amount = amount,
-                    CreationDate = DateTime.UtcNow
-                };
-
-                _context.AccountAdvances.Add(application);
-
-                // Use decimal arithmetic
-                document.OpenAmount = docOpenAmount - amount;
-                //refDocument.OpenAmount = refDocOpenAmount - amount;
-
-                await _context.SaveChangesAsync();
+                await TagAccountAdvanceAsync(data);
                 await transaction.CommitAsync();
             }
             catch
@@ -80,5 +41,49 @@ namespace X.Finance.Business.Services
                 throw;
             }
         }
+
+        internal async Task TagAccountAdvanceAsync(AccountAdvanceTaggingData data)
+        {
+            long docId = data.DocId;
+            long refDocId = data.RefDocID;
+            decimal amount = data.Amount;
+
+            var document = await _context.AccountOutstandings
+                .FirstOrDefaultAsync(o => o.DocId == docId);
+            var refDocument = await _context.AccountOutstandings
+                .FirstOrDefaultAsync(o => o.DocId == refDocId);
+
+            if (document == null)
+                throw new InvalidOperationException("Receipt or Invoice not found.");
+
+            decimal docOpenAmount = Convert.ToDecimal(document.OpenAmount);
+            // decimal refDocOpenAmount = Convert.ToDecimal(refDocument.OpenAmount); // optional
+
+            if (docOpenAmount < amount)
+                throw new InvalidOperationException("Not enough open amount on Receipt.");
+
+            // Optional: validate invoice open amount
+            // if (refDocOpenAmount < amount)
+            //     throw new InvalidOperationException("Invoice already settled for this amount.");
+
+            var application = new AccountAdvance
+            {
+                DocId = document.DocId,
+                LineId = document.DocLineId,
+                ContactId = document.ContactId,
+                AccountId = document.AccountId,
+                RefDocId = refDocId,
+                Amount = amount,
+                CreationDate = DateTime.UtcNow
+            };
+
+            _context.AccountAdvances.Add(application);
+
+            document.OpenAmount = docOpenAmount - amount;
+            // refDocument.OpenAmount = refDocOpenAmount - amount;
+
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

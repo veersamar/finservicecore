@@ -30,5 +30,7 @@ namespace X.Finance.Business.DataObjects
 
         [Required]
         public List<AccountLineData> AccountLines { get; set; }
+
+        public AccountAdvanceTaggingData TaggingReferences { get; set; }
     }
 }

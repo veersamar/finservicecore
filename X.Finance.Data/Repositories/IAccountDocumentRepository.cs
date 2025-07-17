@@ -16,5 +16,8 @@ namespace X.Finance.Data.Repositories
         Task<long> CreateAsync(AccountDocument document);
         Task SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
+        Task<AccountOutstanding> GetOutstandingByDocIdAsync(long docId);
+        Task CreateAdvanceAsync(AccountAdvance advance);
+        Task UpdateOutstandingAsync(AccountOutstanding outstanding);
     }
 }

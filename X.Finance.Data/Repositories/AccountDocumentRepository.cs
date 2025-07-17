@@ -39,5 +39,23 @@ namespace X.Finance.Data.Repositories
         {
             return await _context.Database.BeginTransactionAsync();
         }
+
+        public async Task<AccountOutstanding> GetOutstandingByDocIdAsync(long docId)
+        {
+            return await _context.AccountOutstandings
+                .FirstOrDefaultAsync(o => o.DocId == docId);
+        }
+
+        public async Task CreateAdvanceAsync(AccountAdvance advance)
+        {
+            _context.AccountAdvances.Add(advance);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateOutstandingAsync(AccountOutstanding outstanding)
+        {
+            _context.AccountOutstandings.Update(outstanding);
+            await _context.SaveChangesAsync();
+        }
     }
 }
